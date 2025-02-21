@@ -33,9 +33,9 @@ async function getAttachments() {
   }
 
   // Dynamics Web API endpoint for Annotations (notes) with attachments.
-  const apiUrl = 'https://credentialcheck.crm.dynamics.com/api/data/v9.1/annotations?' +
-                 '$select=annotationid,filename,mimetype,documentbody&' +
-                 '$filter=documentbody ne null';
+  const apiUrl = 'https://credentialcheck.crm.dynamics.com/api/data/v9.1/attachments?' +
+               '$select=attachmentid,filename,mimetype,body&' +
+               '$filter=body ne null';
 
   try {
     const response = await axios.get(apiUrl, {
@@ -49,7 +49,7 @@ async function getAttachments() {
     console.log(`Found ${annotations.length} attachments`);
 
     // Ensure the ./files directory exists for storing downloaded files
-    const filesDir = path.join(__dirname, 'files');
+    const filesDir = path.join(__dirname, 'email-attachments');
     if (!fs.existsSync(filesDir)) {
       fs.mkdirSync(filesDir, { recursive: true });
     }
@@ -60,10 +60,10 @@ async function getAttachments() {
     // Loop through each annotation (file attachment)
     for (const note of annotations) {
       // Destructure needed fields; removed objectid_account
-      const { annotationid, filename, mimetype, documentbody } = note;
+      const { annotationid, filename, mimetype, body } = note;
 
       // Decode the base64 encoded file content provided in the Dynamics annotation
-      const fileBuffer = Buffer.from(documentbody, 'base64');
+      const fileBuffer = Buffer.from(body, 'base64');
 
       // Define the local file path and write the file in the files folder
       const filePath = path.join(filesDir, filename);
@@ -78,7 +78,7 @@ async function getAttachments() {
     }
 
     // Save the aggregated metadata JSON file outside of the files folder
-    const metadataJSONPath = path.join(__dirname, 'metadata.json');
+    const metadataJSONPath = path.join(__dirname, 'emailAttachments.json');
     fs.writeFileSync(metadataJSONPath, JSON.stringify(aggregatedMetadata, null, 2));
     console.log(`Created aggregated metadata JSON: ${metadataJSONPath}`);
 
@@ -90,7 +90,7 @@ async function getAttachments() {
     const csvContent = csvHeader + csvRows.join("\n");
 
     // Save the CSV file outside of the files folder
-    const metadataCSVPath = path.join(__dirname, 'metadata.csv');
+    const metadataCSVPath = path.join(__dirname, 'emailAttachments.csv');
     fs.writeFileSync(metadataCSVPath, csvContent);
     console.log(`Created metadata CSV file: ${metadataCSVPath}`);
 
