@@ -32,9 +32,9 @@ async function getAttachments() {
     return;
   }
 
-  // Dynamics Web API endpoint for Annotations (notes) with attachments.
+  // Query for annotations with attachments and multiple potential parent lookup fields.
   const apiUrl = 'https://credentialcheck.crm.dynamics.com/api/data/v9.1/annotations?' +
-                 '$select=annotationid,filename,mimetype,documentbody&' +
+                 '$select=annotationid,filename,mimetype,documentbody,objectid_account,objectid_contact,objectid_opportunity, ownerid&' +
                  '$filter=documentbody ne null';
 
   try {
@@ -48,7 +48,7 @@ async function getAttachments() {
     const annotations = response.data.value;
     console.log(`Found ${annotations.length} attachments`);
 
-    // Ensure the ./files directory exists for storing downloaded files
+    // Ensure the directory for storing downloaded files exists
     const filesDir = path.join(__dirname, 'annotation-attachments');
     if (!fs.existsSync(filesDir)) {
       fs.mkdirSync(filesDir, { recursive: true });
@@ -59,37 +59,43 @@ async function getAttachments() {
 
     // Loop through each annotation (file attachment)
     for (const note of annotations) {
-      // Destructure needed fields; removed objectid_account
-      const { annotationid, filename, mimetype, documentbody } = note;
+      const { annotationid, filename, mimetype, documentbody, objectid_account, objectid_contact, objectid_opportunity,ownerid } = note;
 
-      // Decode the base64 encoded file content provided in the Dynamics annotation
+      // Decode the base64 encoded file content
       const fileBuffer = Buffer.from(documentbody, 'base64');
 
-      // Define the local file path and write the file in the files folder
+      // Save the file in the designated folder
       const filePath = path.join(filesDir, filename);
       fs.writeFileSync(filePath, fileBuffer);
       console.log(`Downloaded file: ${filename}`);
 
-      // Add the file metadata to the aggregated array
+      // Determine which parent lookup field has a value
+      const ownerId = ownerid || null;
+      const parentId = objectid_account || objectid_contact || objectid_opportunity || null;
+
+      // Add metadata to the aggregated array
       aggregatedMetadata.push({
+        ownerId:ownerId,
+        parentId: parentId,
+        annotationid: annotationid,
         fileName: filename,
         fileType: mimetype,
       });
     }
 
-    // Save the aggregated metadata JSON file outside of the files folder
+    // Save the aggregated metadata JSON file outside the attachments folder
     const metadataJSONPath = path.join(__dirname, 'annotationAttachments.json');
     fs.writeFileSync(metadataJSONPath, JSON.stringify(aggregatedMetadata, null, 2));
     console.log(`Created aggregated metadata JSON: ${metadataJSONPath}`);
 
-    // Create CSV content from the aggregated metadata
-    const csvHeader = "FileName,FileType\n";
+    // Create CSV content including ParentId
+    const csvHeader = "ParentId,FileName,FileType\n";
     const csvRows = aggregatedMetadata.map(item =>
-      `${item.fileName},${item.fileType}`
+      `${item.parentId},${item.fileName},${item.fileType}`
     );
     const csvContent = csvHeader + csvRows.join("\n");
 
-    // Save the CSV file outside of the files folder
+    // Save the CSV file outside the attachments folder
     const metadataCSVPath = path.join(__dirname, 'annotationAttachments.csv');
     fs.writeFileSync(metadataCSVPath, csvContent);
     console.log(`Created metadata CSV file: ${metadataCSVPath}`);

@@ -60,7 +60,7 @@ async function getAttachments() {
     // Loop through each annotation (file attachment)
     for (const note of annotations) {
       // Destructure needed fields; removed objectid_account
-      const { annotationid, filename, mimetype, body } = note;
+      const { attachmentid, filename, mimetype, body } = note;
 
       // Decode the base64 encoded file content provided in the Dynamics annotation
       const fileBuffer = Buffer.from(body, 'base64');
@@ -72,6 +72,7 @@ async function getAttachments() {
 
       // Add the file metadata to the aggregated array
       aggregatedMetadata.push({
+        attachmentid: attachmentid,
         fileName: filename,
         fileType: mimetype,
       });

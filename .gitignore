@@ -3,5 +3,9 @@ node_modules
 files
 metadata.csv
 metadata.json
+annotationAttachments.csv
+annotationAttachments.json
+emailAttachments.csv
+emailAttachments.json
 annotation-attachments
 email-attachments
